@@ -403,7 +403,7 @@ for i in range(NUM_OBS):
     barycorr = target.radial_velocity_correction(obstime=obstime,
                                                  location=observer_location,
                                                  kind='barycentric')
-    barycorr_ms = barycorr.to(u.m/u.s).value # + 6450
+    barycorr_ms = barycorr.to(u.m/u.s).value + 6450
     # print(barycorr_ms)
 
     # Apply total RV shift (user - barycentric)
@@ -419,4 +419,5 @@ for i in range(NUM_OBS):
 if args.template:
     print("\n--- Writing template FITS (no convolution) ---")
     w_orders_tpl, f_orders_tpl = slice_orders(star_wave, star_flux) # Slice the original stellar spectrum for the template.
+
     write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds')) # Write the template FITS file.
