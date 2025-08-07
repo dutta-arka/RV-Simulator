@@ -395,21 +395,17 @@ for i in range(NUM_OBS):
     obs_time = base_time + i * time_delta # Calculate the observation time for the current simulation.
     obstime = Time(obs_time, scale='utc')
 
-    target = SkyCoord(ra=86.819720/15.0 * u.hourangle, dec=-51.06714 * u.deg,
-                      distance=16.27 * u.pc,
-                      pm_ra_cosdec=200.94 * u.mas/u.yr,
-                      pm_dec=12.32 * u.mas/u.yr)
+    target = SkyCoord(ra=86.819720/15.0 * u.hourangle, dec=-51.06714 * u.deg)
 
     barycorr = target.radial_velocity_correction(obstime=obstime,
                                                  location=observer_location,
                                                  kind='barycentric')
-    barycorr_ms = barycorr.to(u.m/u.s).value + 6450
-    # print(barycorr_ms)
+    barycorr_ms = barycorr.to(u.m/u.s).value
 
     # Apply total RV shift (user - barycentric)
-    total_rv = rv_values[i]# - barycorr_ms
+    total_rv = rv_values[i]
     shifted_wave_1 = apply_rv_shift(star_wave, total_rv)  # Apply RV shift to the stellar spectrum.
-    shifted_wave = apply_rv_shift(shifted_wave_1, -barycorr_ms) 
+    shifted_wave = apply_rv_shift(shifted_wave_1, -1 * barycorr_ms) 
 
     flux_conv = convolve_IP(shifted_wave, star_flux, fts_wave, fts_flux, width=args.ip_width) # Convolve the shifted spectrum with FTS and IP.
     wave_orders, flux_orders = slice_orders(shifted_wave, flux_conv) # Slice the convolved flux into echelle orders.
@@ -418,6 +414,20 @@ for i in range(NUM_OBS):
 
 if args.template:
     print("\n--- Writing template FITS (no convolution) ---")
+    obstime_tpl = Time(base_time, scale='utc')
+    barycorr_tpl = target.radial_velocity_correction(obstime=obstime_tpl,
+                                                     location=observer_location,
+                                                     kind='barycentric')
+    barycorr_ms_tpl = barycorr_tpl.to(u.m/u.s).value
+    wave_tpl_corrected = apply_rv_shift(star_wave, -1 * barycorr_ms_tpl)
+    w_orders_tpl, f_orders_tpl = slice_orders(wave_tpl_corrected, star_flux)
+    write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds'))
+    
+    # w_orders_tpl, f_orders_tpl = slice_orders(star_wave, star_flux) # Slice the original stellar spectrum for the template.
+    # write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds')) # Write the template FITS file.
+if args.template:
+    print("\n--- Writing template FITS (no convolution) ---")
     w_orders_tpl, f_orders_tpl = slice_orders(star_wave, star_flux) # Slice the original stellar spectrum for the template.
 
     write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds')) # Write the template FITS file.
+
