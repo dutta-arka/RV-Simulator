@@ -1,7 +1,15 @@
 """
 Simulate a planetary system and generate radial velocity (RV) outputs.
-This script accepts planetary system parameters via command-line interface, supports
+This script accepts planetary system parameters via a command-line interface, supports
 multiple planets, and optionally applies general relativistic (GR) corrections.
+
+Arguments:
+  --star_mass : Mass of the star in solar masses
+  --planets   : Semi-colon separated list of planets, each as "mass(M_earth),period(days),eccentricity,inc(deg)"
+  --num_obs   : Number of observations
+  --use_gr    : Optional flag to enable general relativistic correction
+  --time_step : Equal gap assumption and based on number of observations
+  --date_list : A list of dates of observations
 
 Example usage:
 --------------
@@ -139,4 +147,5 @@ def simulate():
 
 if __name__ == "__main__":
     simulate()
+
 
