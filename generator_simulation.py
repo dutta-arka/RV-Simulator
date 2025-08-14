@@ -19,6 +19,7 @@ Arguments:
 ----------
 -num_obs     Number of observations to generate.
 -vel_list    RV shifts (m/s) for each observation as a list.
+-date_list   non-equal spacing of dates.
 -time_step   Spacing between observations, e.g. '3d0h' for 3 days and 0 hours.
 -file        Path to the synthetic spectrum CSV file.
 -ip_width    IP width in pixels (Gaussian sigma).
@@ -61,7 +62,7 @@ solar_system_ephemeris.set('de430')
 # --- Constants ---
 SPEED_OF_LIGHT = 299792458.0  # Speed of light in m/s
 OUTPUT_TEMPLATE = 'simulated_viper_data_{}.fits'
-OUTPUT_TEMPLATE_FILE = 'template_viper_data.fits'
+OUTPUT_TEMPLATE_FILE = 'template_viper_data_tpl.fits'
 FTS_FILE = 'FTS_default_TLS.fits'
 
 # Echelle order wavelength ranges (Angstrom) TLS
@@ -333,6 +334,7 @@ def write_default_fits(filename, wave_orders, flux_orders, date_obs):
 parser = argparse.ArgumentParser(description="Generate simulated VIPER FITS files with synthetic RV shifts and IP convolution.")
 parser.add_argument('-num_obs', type=int, default=10, help="Number of observations to generate.")
 parser.add_argument('-vel_list', type=str, default=None, help="List of RVs (m/s) for each observation.")
+parser.add_argument('-date_list', type=str, default=None, help="List of observation dates as ISO strings, e.g. ['2025-02-06T00:00:00', '2025-02-08T12:00:00'].")
 parser.add_argument('-time_step', type=str, default='5d0h', help="Time spacing between observations (e.g., '3d0h' for 3 days and 0 hours).")
 parser.add_argument('-template', action='store_true', help="Flag to create a template file.")
 parser.add_argument('-file', type=str, default='spectrum.csv', help="Input CSV file for synthetic spectrum.")
@@ -356,6 +358,24 @@ if time_step_match:
     time_delta = timedelta(days=delta_days, hours=delta_hours)
 else:
     raise ValueError("Invalid time_step format. Use format 'NdMh' like '3d0h'.")
+
+if args.date_list:
+    try:
+        date_list = ast.literal_eval(args.date_list)
+        if not isinstance(date_list, list):
+            raise ValueError()
+        obs_times = [datetime.fromisoformat(d) for d in date_list]
+        NUM_OBS = len(obs_times)
+        print(f"Using explicit date_list with {NUM_OBS} observations.")
+    except Exception:
+        raise ValueError("Invalid format for -date_list. Example: \"['2025-02-06T00:00:00', '2025-02-08T12:00:00']\"")
+else:
+    base_time = datetime(2025, 2, 6, 0, 0, 0)
+    obs_times = [base_time + i * time_delta for i in range(NUM_OBS)]
+
+# Optional sanity check: length-match
+if len(rv_values) != NUM_OBS:
+    raise ValueError(f"Length of velocity list ({len(rv_values)}) does not match number of observations ({NUM_OBS}).")
 
 # --- Build EarthLocation ---
 def get_observer_location(args):
@@ -389,28 +409,25 @@ fts_wave, fts_flux = read_FTS_fits() # Read the FTS iodine spectrum.
 
 print("RV values used (m/s):", rv_values)
 base_time = datetime(2025, 2, 6, 0, 0, 0) # Define the base observation time.
-
+    
+# Main loop:
 for i in range(NUM_OBS):
     print(f"\n--- Simulation {i+1} ---")
-  
-    obs_time = base_time + i * time_delta # Calculate the observation time for the current simulation.
+    obs_time = obs_times[i]  # <-- use obs_times, whether date_list or uniform
     obstime = Time(obs_time, scale='utc')
     target = SkyCoord(ra=86.819720/15.0 * u.hourangle, dec=-51.06714 * u.deg)
-
     barycorr = target.radial_velocity_correction(obstime=obstime,
                                                  location=observer_location,
                                                  kind='barycentric')
     barycorr_ms = barycorr.to(u.m/u.s).value
-
     # Apply total RV shift (user - barycentric)
     total_rv = rv_values[i]
-    shifted_wave_rv = apply_rv_shift(star_wave, total_rv)  # Apply RV shift to the stellar spectrum.
+    shifted_wave_rv = apply_rv_shift(star_wave, total_rv)
     shifted_wave_all = apply_rv_shift(shifted_wave_rv, -1 * barycorr_ms) 
-
-    flux_conv = convolve_IP(shifted_wave_all, star_flux, fts_wave, fts_flux, width=args.ip_width) # Convolve the shifted spectrum with FTS and IP.
-    wave_orders, flux_orders = slice_orders(shifted_wave_all, flux_conv) # Slice the convolved flux into echelle orders.
-    date_obs_str = obs_time.isoformat(timespec='milliseconds') # Format the observation time as an ISO string.
-    write_default_fits(OUTPUT_TEMPLATE.format(i+1), wave_orders, flux_orders, date_obs_str) # Write the simulated data to a FITS file.
+    flux_conv = convolve_IP(shifted_wave_all, star_flux, fts_wave, fts_flux, width=args.ip_width, ip_type=args.ip_type, asymmetry=args.asymmetry, gamma=args.gamma)
+    wave_orders, flux_orders = slice_orders(shifted_wave_all, flux_conv)
+    date_obs_str = obs_time.isoformat(timespec='milliseconds')
+    write_default_fits(OUTPUT_TEMPLATE.format(i+1), wave_orders, flux_orders, date_obs_str)
 
 if args.template:
     print("\n--- Writing template FITS (no convolution) ---")
@@ -420,10 +437,6 @@ if args.template:
                                                      location=observer_location,
                                                      kind='barycentric')
     barycorr_ms_tpl = barycorr_tpl.to(u.m/u.s).value
-  
     wave_tpl_corrected = apply_rv_shift(star_wave, -1 * barycorr_ms_tpl)
     w_orders_tpl, f_orders_tpl = slice_orders(wave_tpl_corrected, star_flux)
     write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds'))
-    
-    # w_orders_tpl, f_orders_tpl = slice_orders(star_wave, star_flux) # Slice the original stellar spectrum for the template.
-    # write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds')) # Write the template FITS file.
