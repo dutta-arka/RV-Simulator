@@ -11,7 +11,7 @@ multi-extension FITS files ready for use with VIPER.
 
 Usage:
 ------
-python3 generator_exp.py -num_obs 3 -vel_list "[1050, 1000, 950]" \
+python3 generator_simulation.py -num_obs 3 -vel_list "[1050, 1000, 950]" \
   -time_step 5d0h -ip_width 1.2 -ip_type 'bigaussian' -asymmetry 0.2 \
   -file spectrum.csv -template
 
@@ -440,3 +440,4 @@ if args.template:
     wave_tpl_corrected = apply_rv_shift(star_wave, -1 * barycorr_ms_tpl)
     w_orders_tpl, f_orders_tpl = slice_orders(wave_tpl_corrected, star_flux)
     write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds'))
+
