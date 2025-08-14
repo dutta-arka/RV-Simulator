@@ -111,7 +111,7 @@ def simulate():
         rv = keplerian_velocity(star_mass, planet, times_sec, use_gr)
         total_vel += rv
 
-    # --- Build command for generator_exp.py ---
+    # --- Build command for generator_simulation.py ---
     ip_width = 20.0
     ip_type = "bigaussian"
     asymmetry = 0.2
@@ -123,19 +123,20 @@ def simulate():
     if args.date_list:
         # Pass dates directly
         date_list_str = "[" + ", ".join(f"'{d.isoformat()}'" for d in obs_times_dt) + "]"
-        cmd = f"python3 generator_exp.py -vel_list '{vel_list_str}' -date_list \"{date_list_str}\" " \
+        cmd = f"python3 generator_simulation.py -vel_list '{vel_list_str}' -date_list \"{date_list_str}\" " \
               f"-ip_width {ip_width} -ip_type '{ip_type}' -asymmetry {asymmetry} -file {out_file}"
     else:
         # Pass uniform spacing via -num_obs and -time_step
-        cmd = f"python3 generator_exp.py -num_obs {len(obs_times_dt)} -vel_list '{vel_list_str}' " \
+        cmd = f"python3 generator_simulation.py -num_obs {len(obs_times_dt)} -vel_list '{vel_list_str}' " \
               f"-time_step {args.time_step} -ip_width {ip_width} -ip_type '{ip_type}' " \
               f"-asymmetry {asymmetry} -file {out_file}"
 
     if use_template:
         cmd += " -template"
 
-    print("\nGenerated command to run generator_exp.py:\n")
+    print("\nGenerated command to run generator_simulation.py:\n")
     print(cmd)
 
 if __name__ == "__main__":
     simulate()
+
