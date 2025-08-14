@@ -414,16 +414,21 @@ base_time = datetime(2025, 2, 6, 0, 0, 0) # Define the base observation time.
 for i in range(NUM_OBS):
     print(f"\n--- Simulation {i+1} ---")
     obs_time = obs_times[i]  # <-- use obs_times, whether date_list or uniform
+    # Alternative
+    first_obs_time = obs_times[0]
     obstime = Time(obs_time, scale='utc')
     target = SkyCoord(ra=86.819720/15.0 * u.hourangle, dec=-51.06714 * u.deg)
     barycorr = target.radial_velocity_correction(obstime=obstime,
                                                  location=observer_location,
                                                  kind='barycentric')
     barycorr_ms = barycorr.to(u.m/u.s).value
+    # barycorr_ms = 0.0
     # Apply total RV shift (user - barycentric)
     total_rv = rv_values[i]
-    shifted_wave_rv = apply_rv_shift(star_wave, total_rv)
-    shifted_wave_all = apply_rv_shift(shifted_wave_rv, -1 * barycorr_ms) 
+    # Alternative
+    shifted_wave_rv = apply_rv_shift(star_wave, total_rv + (-1 * barycorr_ms))
+    # shifted_wave_all = apply_rv_shift(shifted_wave_rv, -1 * barycorr_ms) 
+    shifted_wave_all = shifted_wave_rv
     flux_conv = convolve_IP(shifted_wave_all, star_flux, fts_wave, fts_flux, width=args.ip_width, ip_type=args.ip_type, asymmetry=args.asymmetry, gamma=args.gamma)
     wave_orders, flux_orders = slice_orders(shifted_wave_all, flux_conv)
     date_obs_str = obs_time.isoformat(timespec='milliseconds')
@@ -433,12 +438,15 @@ if args.template:
     print("\n--- Writing template FITS (no convolution) ---")
   
     obstime_tpl = Time(base_time, scale='utc')
-    barycorr_tpl = target.radial_velocity_correction(obstime=obstime_tpl,
+    # barycorr_tpl = target.radial_velocity_correction(obstime=obstime_tpl,
+                                                     # location=observer_location,
+                                                     # kind='barycentric')
+    # Alternative
+    barycorr_tpl = target.radial_velocity_correction(obstime=Time(first_obs_time, scale='utc'),
                                                      location=observer_location,
                                                      kind='barycentric')
     barycorr_ms_tpl = barycorr_tpl.to(u.m/u.s).value
+    # barycorr_ms_tpl = 0.0
     wave_tpl_corrected = apply_rv_shift(star_wave, -1 * barycorr_ms_tpl)
     w_orders_tpl, f_orders_tpl = slice_orders(wave_tpl_corrected, star_flux)
     write_default_fits(OUTPUT_TEMPLATE_FILE, w_orders_tpl, f_orders_tpl, base_time.isoformat(timespec='milliseconds'))
-
-
