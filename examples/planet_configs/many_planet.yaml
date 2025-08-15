@@ -1,0 +1,51 @@
+star:
+  mass: 1.0                      # Solar masses
+  
+planets:
+  - name: "Hot Jupiter"
+    mass: 300.0                  # Earth masses  
+    period: 10                   # days
+    eccentricity: 0.15
+    inclination: 88              # degrees
+    
+  - name: "Super Earth"
+    mass: 8.0
+    period: 25           
+    eccentricity: 0.20
+    inclination: 89 
+
+  - name: "Neptune"
+    mass: 18          
+    period: 60           s
+    eccentricity: 0.08
+    inclination: 90
+    
+observations:
+  times: 
+    - "2025-02-06T00:00:00"
+    - "2025-02-11T03:00:00"
+    - "2025-02-21T01:00:00"
+    - "2025-02-28T00:30:00"
+    - "2025-03-07T23:30:00"
+    - "2025-03-18T01:00:00"
+    - "2025-03-31T02:15:00"
+    - "2025-04-13T20:00:00"
+    - "2025-04-25T01:00:00"
+    - "2025-05-05T22:00:00"
+    - "2025-05-08T23:00:00"
+  # OR uniform spacing:
+  # uniform:
+  #   num_obs: 10
+  #   cadence: "5d0h"
+
+instrument:
+  name: "DEFAULT"
+  ip_width: 2.0
+  ip_type: "gaussian"
+  asymmetry: 0.0
+  
+simulation:
+  spectrum_file: "spectrum.csv"                # A basic solar spectrum at 0.02Å resolution
+  fts_file: "FTS_default_TLS.fits"
+  output_template: "simulated_rv_data_{}.fits"
+  use_template: true
