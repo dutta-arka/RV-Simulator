@@ -29,7 +29,7 @@ setup(
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Astronomy",
-        "License :: OSI Approved :: MIT License",
+        "License :: GNU General Public License v3.0",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
