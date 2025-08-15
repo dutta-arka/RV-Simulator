@@ -1,0 +1,31 @@
+star:
+  mass: 1.0  # Solar masses
+  
+planets:
+  - name: "Hot Jupiter"
+    mass: 8.0  # Earth masses  
+    period: 10  # days
+    eccentricity: 0.15
+    inclination: 90  # degrees
+    
+observations:
+  times: 
+    - "2025-02-06T00:00:00"
+    - "2025-02-08T12:00:00"
+    - "2025-02-15T06:00:00"
+  # OR uniform spacing:
+  # uniform:
+  #   num_obs: 10
+  #   cadence: "5d0h"
+
+instrument:
+  name: "DEFAULT"
+  ip_width: 2.0
+  ip_type: "gaussian"
+  asymmetry: 0.0
+  
+simulation:
+  spectrum_file: "spectrum.csv"                # A basic solar spectrum at 0.02Å resolution
+  fts_file: "FTS_default_TLS.fits"
+  output_template: "simulated_rv_data_{}.fits"
+  use_template: true
