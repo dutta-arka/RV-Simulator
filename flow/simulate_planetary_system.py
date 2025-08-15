@@ -4,12 +4,12 @@ This script accepts planetary system parameters via a command-line interface, su
 multiple planets, and optionally applies general relativistic (GR) corrections.
 
 Arguments:
-  --star_mass : Mass of the star in solar masses
-  --planets   : Semi-colon separated list of planets, each as "mass(M_earth),period(days),eccentricity,inc(deg)"
-  --num_obs   : Number of observations
-  --use_gr    : Optional flag to enable general relativistic correction
-  --time_step : Equal gap assumption and based on number of observations
-  --date_list : A list of dates of observations
+  --star_mass:  Mass of the star in solar masses
+  --planets:    Semi-colon separated list of planets, each as "mass(M_earth),period(days),eccentricity,inc(deg)"
+  --num_obs:    Number of observations
+  --use_gr:     Optional flag to enable general relativistic correction
+  --time_step:  Equal gap assumption and based on the number of observations
+  --date_list:  A list of dates of observations
 
 Example usage:
 --------------
@@ -39,17 +39,12 @@ M_earth = 5.9722e24   # kg
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Simulate planetary system RVs.")
-    parser.add_argument("--star_mass", type=float, required=True,
-                        help="Star mass in solar masses")
-    parser.add_argument("--planets", type=str, required=True,
-                        help="Semicolon-separated list: 'mass,period,ecc,inc' per planet")
-    parser.add_argument("--num_obs", type=int, default=None,
-                        help="Number of RV observations (ignored if date_list supplied)")
+    parser.add_argument("--star_mass", type=float, required=True, help="Star mass in solar masses")
+    parser.add_argument("--planets", type=str, required=True, help="Semicolon-separated list: 'mass,period,ecc,inc' per planet")
+    parser.add_argument("--num_obs", type=int, default=None, help="Number of RV observations (ignored if date_list supplied)")
     parser.add_argument("--use_gr", action="store_true", help="Apply GR correction")
-    parser.add_argument("--time_step", type=str, default="10d0h",
-                        help="Spacing between observations: e.g. '3d0h' (ignored if date_list supplied)")
-    parser.add_argument("--date_list", type=str, default=None,
-                        help="Explicit list of observation datetimes (ISO strings) for non-uniform spacing")
+    parser.add_argument("--time_step", type=str, default="10d0h", help="Spacing between observations: e.g. '3d0h' (ignored if date_list supplied)")
+    parser.add_argument("--date_list", type=str, default=None, help="Explicit list of observation datetimes (ISO strings) for non-uniform spacing")
     return parser.parse_args()
 
 def parse_planets(planets_str):
@@ -109,7 +104,7 @@ def simulate():
         base_time = datetime(2025, 2, 6, 0, 0, 0)
         obs_times_dt = [base_time + i * time_delta for i in range(args.num_obs)]
 
-    # Convert obs_times_dt to list of elapsed seconds from first obs (for RV simulation)
+    # Convert obs_times_dt to a list of elapsed seconds from the first obs (for RV simulation)
     t0 = obs_times_dt[0]
     times_sec = np.array([(t - t0).total_seconds() for t in obs_times_dt])
 
@@ -147,5 +142,3 @@ def simulate():
 
 if __name__ == "__main__":
     simulate()
-
-
