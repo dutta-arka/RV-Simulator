@@ -3,9 +3,11 @@ Instrumental profile convolution functions
 """
 
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
+# from scipy.ndimage import gaussian_filter1d
+from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 from scipy.special import wofz
+from ..utils.constants import SPEED_OF_LIGHT
 
 def _gaussian_kernel(size: int, sigma: float) -> np.ndarray:
     """Creates a standard Gaussian kernel."""
