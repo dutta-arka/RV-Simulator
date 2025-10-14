@@ -43,118 +43,118 @@ def _voigt_kernel(size: int, sigma: float, gamma: float) -> np.ndarray:
     kernel = np.real(wofz(z)) / (sigma * np.sqrt(2 * np.pi))
     return kernel / np.sum(kernel)
 
-# def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, 
-#                 fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', 
-#                 asymmetry: float = 0.0, gamma: float = 0.0) -> np.ndarray:
+# =============================================================================
+# def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', asymmetry: float = 0.0, gamma: float = 0.0, oversample_factor: int = 3) -> np.ndarray:
 #     """
-#     Convolve the stellar spectrum and FTS reference with the selected IP profile.
-    
-#     Parameters
-#     ----------
-#     shifted_wave: wavelength grid of shifted stellar spectrum [Å]
-#     star_flux: stellar flux on shifted_wave
-#     fts_wave: wavelength grid of iodine FTS reference [Å]
-#     fts_flux: FTS transmission on fts_wave
-#     width: Gaussian sigma (in pixels) for IP
-#     ip_type: 'gaussian', 'bigaussian', or 'voigt'
-#     asymmetry: asymmetry factor for bi-Gaussian (-1 to 1)
-#     gamma: Lorentzian width for Voigt profile
-    
-#     Returns
-#     -------
-#     convolved_flux: interpolated convolved flux on shifted_wave grid
+#     Convolve stellar spectrum × iodine FTS with instrumental profile (IP).
+#     Works in log-lambda space with oversampling for accuracy.
 #     """
-#     wave_min = max(shifted_wave.min(), fts_wave.min())
-#     wave_max = min(shifted_wave.max(), fts_wave.max())
-#     if wave_max <= wave_min:
-#         raise ValueError("No overlapping wavelength region")
-
-#     dx = min(np.min(np.diff(shifted_wave)), np.min(np.diff(fts_wave)))
-#     npts = max(2, int(np.floor((wave_max - wave_min) / dx)) + 1)
-#     wave_uni = np.linspace(wave_min, wave_max, npts)
-
-#     star_uni = np.interp(wave_uni, shifted_wave, star_flux, left=1.0, right=1.0)
-#     fts_uni = np.interp(wave_uni, fts_wave, fts_flux, left=1.0, right=1.0)
-#     model_uni = star_uni * fts_uni
-
+#     # --- Step 1: Common log grid ---
+#     wave_min = np.max([np.min(shifted_wave), np.min(fts_wave)])
+#     wave_max = np.min([np.max(shifted_wave), np.max(fts_wave)])
+#     min_dlog_star = np.min(np.diff(shifted_wave) / shifted_wave[:-1])
+#     min_dlog_fts  = np.min(np.diff(fts_wave) / fts_wave[:-1])
+#     base_dlog = np.min([min_dlog_star, min_dlog_fts])
+#     dlog = base_dlog / oversample_factor
+#     log_wave_uni = np.arange(np.log(wave_min), np.log(wave_max), dlog)
+# 
+#     # --- Step 2: Interpolate star × iodine ---
+#     star_interp = interp1d(np.log(shifted_wave), star_flux, kind='cubic', bounds_error=False, fill_value=np.nan)
+#     fts_interp  = interp1d(np.log(fts_wave),    fts_flux,  kind='cubic', bounds_error=False, fill_value=np.nan)
+#     model_uni = star_interp(log_wave_uni) * fts_interp(log_wave_uni)
+#     model_uni = np.nan_to_num(model_uni, nan=np.nanmedian(star_flux))
+# 
+#     # --- Step 3: Build IP kernel ---
+#     dv_per_bin = dlog * (SPEED_OF_LIGHT / 1000.0)  # km/s per pixel
+#     sigma_bins = width / dv_per_bin
+#     gamma_bins = gamma / dv_per_bin
+#     half_bins  = int(np.ceil(5 * sigma_bins))
 #     if ip_type == 'gaussian':
-#         model_conv = gaussian_filter1d(model_uni, sigma=width, mode='constant', cval=1.0)
+#         kernel = _gaussian_kernel(2*half_bins+1, sigma_bins)
 #     elif ip_type == 'bigaussian':
-#         kernel = _bigaussian_kernel(int(5 * width), width, asymmetry)
-#         model_conv = fftconvolve(model_uni, kernel, mode='same')
+#         kernel = _bigaussian_kernel(half_bins, sigma_bins, asymmetry)
 #     elif ip_type == 'voigt':
-#         kernel = _voigt_kernel(int(5 * width), width, gamma)
-#         model_conv = fftconvolve(model_uni, kernel, mode='same')
+#         kernel = _voigt_kernel(half_bins, sigma_bins, gamma_bins)
 #     else:
-#         raise ValueError(f"Invalid ip_type: {ip_type}. Choose 'gaussian', 'bigaussian', or 'voigt'.")
+#         raise ValueError(f"Invalid ip_type: {ip_type}")
+# 
+#     # --- Step 4: Convolution ---
+#     model_conv = fftconvolve(model_uni, kernel, mode='same')
+# 
+#     # --- Step 5: Back to original grid ---
+#     conv_interp = interp1d(log_wave_uni, model_conv, kind='cubic', bounds_error=False, fill_value=np.nanmedian(model_conv))
+#     return conv_interp(np.log(shifted_wave))
+# =============================================================================
 
-#     return np.interp(shifted_wave, wave_uni, model_conv, left=1.0, right=1.0)
-
-def convolve_IP(
-    shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', asymmetry: float = 0.0, gamma: float = 0.0, oversample_factor: int = 3) -> np.ndarray:
+def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', asymmetry: float = 0.0, gamma: float = 0.0, oversample_factor: int = 3) -> np.ndarray:
     """
-    Performs a high-accuracy convolution by operating in velocity space. This
-    version uses cubic interpolation and robust grid creation for improved results.
-
-    Parameters:
-      shifted_wave : Wavelength grid of the stellar spectrum [Å].
-      star_flux    : Stellar flux.
-      fts_wave     : Wavelength grid of the iodine FTS reference [Å].
-      fts_flux     : FTS transmission.
-      width        : The primary IP width (sigma) in units of [km/s].
-      ip_type      : 'gaussian', 'bigaussian', or 'voigt'.
-      asymmetry    : Asymmetry factor for the bi-Gaussian profile.
-      gamma        : Lorentzian width (HWHM) in [km/s] for the Voigt profile.
-      oversample_factor: Factor to oversample the native spectral resolution.
+    Convolve stellar spectrum × iodine FTS with instrumental profile (IP).
+    Works in log-lambda space with oversampling for accuracy.
     """
-    C_KMS = 299792.458  # Speed of light in km/s
 
-    # -- Step 1: High-Fidelity Grid Creation --
-    wave_min = max(shifted_wave.min(), fts_wave.min())
-    wave_max = min(shifted_wave.max(), fts_wave.max())
-    
-    # Determine the finest resolution in log-space from BOTH input spectra
-    min_dlog_star = np.min(np.diff(shifted_wave) / shifted_wave[:-1])
-    min_dlog_fts = np.min(np.diff(fts_wave) / fts_wave[:-1])
-    base_d_log_wave = min(min_dlog_star, min_dlog_fts)
-    
-    # Create the new grid step by oversampling the finest native resolution
-    d_log_wave = base_d_log_wave / oversample_factor
-    
-    # Extend grid slightly to create a buffer for convolution edge effects
-    log_wave_min = np.log(wave_min)
-    log_wave_max = np.log(wave_max)
-    buffer = 50 * d_log_wave  # Buffer of 100 pixels
-    log_wave_uni = np.arange(log_wave_min - buffer, log_wave_max + buffer, d_log_wave)
+    # --- Step 1: Common log grid (fixed reference dv per bin) ---
+    wave_min = np.max([np.min(shifted_wave), np.min(fts_wave)])
+    wave_max = np.min([np.max(shifted_wave), np.max(fts_wave)])
 
-    # -- Step 2: High-Order Resampling (Cubic Interpolation) --
-    # Create cubic interpolators for more accurate resampling
-    star_interpolator = interp1d(np.log(shifted_wave), star_flux, kind='cubic', bounds_error=False, fill_value=1.0)
-    fts_interpolator = interp1d(np.log(fts_wave), fts_flux, kind='cubic', bounds_error=False, fill_value=1.0)
-    
-    model_uni = star_interpolator(log_wave_uni) * fts_interpolator(log_wave_uni)
+    if wave_max <= wave_min:
+        raise ValueError("No overlap between star and FTS spectra")
 
-    # -- Step 3: Create IP Kernel (Unchanged) --
-    dv_per_bin = d_log_wave * C_KMS
-    sigma_in_bins = width / dv_per_bin
-    gamma_in_bins = gamma / dv_per_bin
-    kernel_half_bins = int(np.ceil(5 * sigma_in_bins))
-    
+    dlog_star = np.min(np.diff(np.log(shifted_wave)))
+    dlog_fts  = np.min(np.diff(np.log(fts_wave)))
+    base_dlog = np.nanmin([dlog_star, dlog_fts])
+    if not np.isfinite(base_dlog) or base_dlog <= 0:
+        raise ValueError("Invalid wavelength sampling")
+
+    dlog = base_dlog / oversample_factor
+    log_wave_uni = np.arange(np.log(wave_min), np.log(wave_max) + dlog, dlog)
+
+    # --- Step 2: Interpolate star × iodine ---
+    star_interp = interp1d(np.log(shifted_wave), star_flux, kind='cubic', bounds_error=False, fill_value=np.nan)
+    fts_interp  = interp1d(np.log(fts_wave), fts_flux,  kind='cubic', bounds_error=False, fill_value=np.nan)
+
+    star_vals = star_interp(log_wave_uni)
+    fts_vals  = fts_interp(log_wave_uni)
+    model_uni = star_vals * fts_vals
+
+    if np.isnan(model_uni).any():
+        median_val = np.nanmedian(model_uni)
+        model_uni = np.where(np.isnan(model_uni), median_val, model_uni)
+
+    # --- Step 3: Build IP kernel (constant physical width) ---
+    dv_per_bin = dlog * (SPEED_OF_LIGHT / 1000)
+    sigma_bins = width / dv_per_bin
+    gamma_bins = gamma / dv_per_bin
+    sigma_bins = np.clip(sigma_bins, 1e-6, None)
+    half_bins  = int(np.ceil(5 * sigma_bins))
+
     if ip_type == 'gaussian':
-        kernel = _gaussian_kernel(2 * kernel_half_bins + 1, sigma_in_bins)
+        kernel = _gaussian_kernel(2*half_bins+1, sigma_bins)
     elif ip_type == 'bigaussian':
-        kernel = _bigaussian_kernel(kernel_half_bins, sigma_in_bins, asymmetry)
+        kernel = _bigaussian_kernel(half_bins, sigma_bins, asymmetry)
     elif ip_type == 'voigt':
-        kernel = _voigt_kernel(kernel_half_bins, sigma_in_bins, gamma_in_bins)
+        kernel = _voigt_kernel(half_bins, sigma_bins, gamma_bins)
     else:
-        raise ValueError(f"Invalid ip_type: '{ip_type}'.")
+        raise ValueError(f"Invalid ip_type: {ip_type}")
 
-    # -- Step 4: Convolution (Unchanged) --
-    model_conv = fftconvolve(model_uni, kernel, mode='same')
-    
-    # -- Step 5: High-Order Interpolation Back to Original Grid --
-    # Create a new cubic interpolator for the final convolved model
-    conv_interpolator = interp1d(log_wave_uni, model_conv, kind='cubic', bounds_error=False, fill_value=1.0)
-    convolved_flux = conv_interpolator(np.log(shifted_wave))
-    
-    return convolved_flux
+    # print(f"[DEBUG] dv_per_bin = {dv_per_bin:.6f} km/s, "
+    #   f"sigma_bins = {sigma_bins:.3f}, "
+    #   f"kernel_size = {kernel.size}, "
+    #   f"wave_range = [{wave_min:.2f}, {wave_max:.2f}] Å")  
+    # print(f"[KERNEL DEBUG] width (input) = {width}, dv_per_bin = {dv_per_bin:.6f} km/s, sigma_bins = {sigma_bins:.3f}")
+
+    # --- Step 4: Convolution (with reflection padding to avoid wrap) ---
+    pad_len = kernel.size * 2
+    padded_model = np.pad(model_uni, pad_len, mode='reflect')
+    model_conv_padded = fftconvolve(padded_model, kernel, mode='same')
+    model_conv = model_conv_padded[pad_len:-pad_len]
+
+    # --- Step 5: Interpolate back to original grid ---
+    conv_interp = interp1d(log_wave_uni, model_conv, kind='cubic',
+                            bounds_error=False, fill_value=np.nan)
+    conv_flux = conv_interp(np.log(shifted_wave))
+
+    # Replace NaNs (edge zones) with original flux
+    if np.isnan(conv_flux).any():
+        conv_flux = np.where(np.isnan(conv_flux), star_flux, conv_flux)
+
+    return conv_flux  # [same shape as star_flux]
