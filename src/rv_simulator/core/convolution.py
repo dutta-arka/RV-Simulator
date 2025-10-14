@@ -86,6 +86,12 @@ def _voigt_kernel(size: int, sigma: float, gamma: float) -> np.ndarray:
 #     return conv_interp(np.log(shifted_wave))
 # =============================================================================
 
+def simulate_stellar_rv(times_s, i, noise_scale=1.0):
+    
+    rng = np.random.default_rng()
+    rv_noise = rng.normal(0.0, 1.5 * noise_scale)
+    return rv_noise  # [m/s]
+
 def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', asymmetry: float = 0.0, gamma: float = 0.0, oversample_factor: int = 3) -> np.ndarray:
     """
     Convolve stellar spectrum × iodine FTS with instrumental profile (IP).
