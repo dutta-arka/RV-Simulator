@@ -2,9 +2,12 @@
 FITS file handling for VIPER-compatible output
 """
 
+import os
 import numpy as np
+import pandas as pd
 from astropy.io import fits
 from ..utils.constants import TLS_ORDER_WAVELENGTHS
+from ..utils.constants import DEFAULT_FTS_FILE
 
 def slice_orders(wave, flux):
     """Slices the spectrum into echelle orders based on predefined wavelength ranges."""
