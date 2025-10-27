@@ -6,18 +6,24 @@ __version__ = "0.1.0"
 __author__ = "Arkaprova Dutta"
 
 # Core imports for easy access
-from .core.keplerian import simulate_planetary_system
-from .core.convolution import convolve_IP
-from .core.doppler import apply_rv_shift
-from .io.spectrum_reader import read_spectrum_csv, read_FTS_fits
-from .io.fits_handler import write_default_fits, slice_orders
+from .core.doppler import apply_rv_shift, simulate_stellar_rv
+from .core.keplerian import calculate_keplerian_rv
+from .core.convolution import convolve_IP_on_uniform_grid, create_instrument_grids
+from .io.spectrum_reader import read_spectrum_csv, auto_detect_orders_from_fits
+from .io.fits_handler import read_FTS_fits, write_default_fits
+from .utils.constants import SPEED_OF_LIGHT, DEFAULT_ORDER_RANGES
 
 __all__ = [
-    'simulate_planetary_system',
-    'convolve_IP', 
+    '__version__',
     'apply_rv_shift',
+    'simulate_stellar_rv',
+    'calculate_keplerian_rv',
+    'convolve_IP_on_uniform_grid',
+    'create_instrument_grids',
     'read_spectrum_csv',
+    'auto_detect_orders_from_fits',
     'read_FTS_fits',
     'write_default_fits',
-    'slice_orders'
+    'SPEED_OF_LIGHT',
+    'DEFAULT_ORDER_RANGES',
 ]
