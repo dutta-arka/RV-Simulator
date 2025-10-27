@@ -94,49 +94,62 @@ def simulate_stellar_rv(times_s, i, noise_scale=1.0):
     rv_noise = rng.normal(0.0, 1.5 * noise_scale)
     return rv_noise  # [m/s]
 
-def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.ndarray, fts_flux: np.ndarray, width: float, ip_type: str = 'gaussian', asymmetry: float = 0.0, gamma: float = 0.0, oversample_factor: int = 3) -> np.ndarray:
+def create_instrument_grids(order_ranges, oversample_factor=1, default_pixels=4096):
     """
-    Convolve stellar spectrum × iodine FTS with instrumental profile (IP).
-    Works in log-lambda space with oversampling for accuracy.
+    Creates a list of fixed, uniform log-lambda grids for the instrument.
+    Returns a list of tuples: (wave_grid, d_log_wave)
     """
+    print("Creating fixed instrument grids...")
+    instrument_grids = []
+    
+    # Estimate the best d_log_wave to use
+    min_dlog = np.inf
+    for start, end in order_ranges:
+        # Estimate resolution (dlambda/lambda)
+        dlambda = (end - start) / default_pixels # Assume N pixels
+        dlog = dlambda / start
+        if dlog < min_dlog:
+            min_dlog = dlog
+    
+    # Use an oversampled, fixed d_log_wave for all orders
+    d_log_wave = min_dlog / oversample_factor
+    print(f"Using master d_log_wave: {d_log_wave:e} (dv = {d_log_wave * SPEED_OF_LIGHT:.2f} m/s)")
+    
+    for i, (start, end) in enumerate(order_ranges):
+        log_start = np.log(start)
+        log_end = np.log(end)
+        n_pts = int(np.ceil((log_end - log_start) / d_log_wave))
+        if n_pts < 2:
+            print(f"WARNING: Order {i} ({start:.1f}-{end:.1f} Å) has < 2 points. Skipping.")
+            continue
+        
+        log_wave_grid = np.linspace(log_start, log_end, n_pts)
+        wave_grid = np.exp(log_wave_grid)
+        instrument_grids.append((wave_grid, d_log_wave))
+        # print(f"Order {i}: {start:.1f}-{end:.1f} Å, {n_pts} points")
+        
+    print(f"Created {len(instrument_grids)} fixed grids.")
+    return instrument_grids
 
-    # --- Step 1: Common log grid (fixed reference dv per bin) ---
-    wave_min = np.max([np.min(shifted_wave), np.min(fts_wave)])
-    wave_max = np.min([np.max(shifted_wave), np.max(fts_wave)])
-
-    if wave_max <= wave_min:
-        raise ValueError("No overlap between star and FTS spectra")
-
-    dlog_star = np.min(np.diff(np.log(shifted_wave)))
-    dlog_fts  = np.min(np.diff(np.log(fts_wave)))
-    base_dlog = np.nanmin([dlog_star, dlog_fts])
-    if not np.isfinite(base_dlog) or base_dlog <= 0:
-        raise ValueError("Invalid wavelength sampling")
-
-    dlog = base_dlog / oversample_factor
-    log_wave_uni = np.arange(np.log(wave_min), np.log(wave_max) + dlog, dlog)
-
-    # --- Step 2: Interpolate star × iodine ---
-    star_interp = interp1d(np.log(shifted_wave), star_flux, kind='cubic', bounds_error=False, fill_value=np.nan)
-    fts_interp  = interp1d(np.log(fts_wave), fts_flux,  kind='cubic', bounds_error=False, fill_value=np.nan)
-
-    star_vals = star_interp(log_wave_uni)
-    fts_vals  = fts_interp(log_wave_uni)
-    model_uni = star_vals * fts_vals
-
-    if np.isnan(model_uni).any():
-        median_val = np.nanmedian(model_uni)
-        model_uni = np.where(np.isnan(model_uni), median_val, model_uni)
-
-    # --- Step 3: Build IP kernel (constant physical width) ---
-    dv_per_bin = dlog * (SPEED_OF_LIGHT / 1000)
-    sigma_bins = width / dv_per_bin
+def convolve_IP_on_uniform_grid(flux_uni, d_log_wave, width_kms, ip_type='gaussian', asymmetry=0.0, gamma=0.0):
+    """
+    Convolves flux *already on a uniform log-lambda grid*.
+    width_kms is the IP width in km/s.
+    d_log_wave is the log-lambda step of the grid.
+    """
+    # --- Build IP kernel ---
+    dv_per_bin = d_log_wave * (SPEED_OF_LIGHT / 1000.0)  # km/s per bin
+    if dv_per_bin <= 0:
+        raise ValueError("d_log_wave must be positive")
+        
+    sigma_bins = width_kms / dv_per_bin
     gamma_bins = gamma / dv_per_bin
-    sigma_bins = np.clip(sigma_bins, 1e-6, None)
-    half_bins  = int(np.ceil(5 * sigma_bins))
+    
+    # We use a FIXED half-size to match VIPER's internal 'IP_hs'
+    half_bins = VIPER_IP_HALF_SIZE
 
     if ip_type == 'gaussian':
-        kernel = _gaussian_kernel(2*half_bins+1, sigma_bins)
+        kernel = _gaussian_kernel(2 * half_bins + 1, sigma_bins)
     elif ip_type == 'bigaussian':
         kernel = _bigaussian_kernel(half_bins, sigma_bins, asymmetry)
     elif ip_type == 'voigt':
@@ -144,25 +157,5 @@ def convolve_IP(shifted_wave: np.ndarray, star_flux: np.ndarray, fts_wave: np.nd
     else:
         raise ValueError(f"Invalid ip_type: {ip_type}")
 
-    # print(f"[DEBUG] dv_per_bin = {dv_per_bin:.6f} km/s, "
-    #   f"sigma_bins = {sigma_bins:.3f}, "
-    #   f"kernel_size = {kernel.size}, "
-    #   f"wave_range = [{wave_min:.2f}, {wave_max:.2f}] Å")  
-    # print(f"[KERNEL DEBUG] width (input) = {width}, dv_per_bin = {dv_per_bin:.6f} km/s, sigma_bins = {sigma_bins:.3f}")
-
-    # --- Step 4: Convolution (with reflection padding to avoid wrap) ---
-    pad_len = kernel.size * 2
-    padded_model = np.pad(model_uni, pad_len, mode='reflect')
-    model_conv_padded = fftconvolve(padded_model, kernel, mode='same')
-    model_conv = model_conv_padded[pad_len:-pad_len]
-
-    # --- Step 5: Interpolate back to original grid ---
-    conv_interp = interp1d(log_wave_uni, model_conv, kind='cubic',
-                            bounds_error=False, fill_value=np.nan)
-    conv_flux = conv_interp(np.log(shifted_wave))
-
-    # Replace NaNs (edge zones) with original flux
-    if np.isnan(conv_flux).any():
-        conv_flux = np.where(np.isnan(conv_flux), star_flux, conv_flux)
-
-    return conv_flux  # [same shape as star_flux]
+    # --- Convolution ---
+    return np.convolve(flux_uni, kernel, mode='valid')
