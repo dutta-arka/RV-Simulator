@@ -1,5 +1,5 @@
 """
-RV-Simulator: A package for simulating radial velocity observations
+RV-Simulator: A repository for simulating radial velocity observations
 """
 
 __version__ = "0.1.0"
