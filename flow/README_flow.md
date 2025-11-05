@@ -21,3 +21,47 @@ Key Features:
 
 Command-Line Arguments:
 * `--star_mass`: [Required] The mass of the star in solar masses.
+* `--planets`: [Required] A string describing the planets. For multiple planets, separate them with a semicolon (;). Each planet is defined by mass (in Earth mass), period (in days), eccentricity, and inclination (in degrees). Use an empty string "" if there are no planets.
+* `--num_obs`: The number of observations you want to simulate. It's required if you're not providing a specific list of dates.
+* `--time_step`: The interval between uniformly spaced observations (e.g., `10d0h` for 10 days). This is the default method if no other timing is specified.
+* `--date_list`: A string containing a Python list of ISO-formatted dates (e.g., `"['2025-02-06T00:00:00', '2025-02-08T12:30:00']"`) for irregularly timed observations.
+* `--random_dates`: A flag to generate random observation times. Just add `--random_dates` to the command. It sets a baseline of roughly `7*num_obs`.
+* `--use_gr`: A flag to apply the general relativity correction. Add `--use_gr` to enable it.
+
+Usage Examples
+You can run the script from your terminal. Here are examples for the different timing modes:
+
+1. Uniform Observation Spacing
+This simulates 5 observations spaced 10 days apart for a star with two planets.
+
+```
+python simulate_planetary_system.py \
+--star_mass 1.0 \
+--planets "1.0,365,0.0,90;0.003,10,0.1,60" \
+--num_obs 5 \
+--time_step 10d0h
+```
+
+2. Specific Observation Dates (Non-Uniform)
+This simulates observations on three specific dates that you provide.
+
+```
+python simulate_planetary_system.py \
+--star_mass 1.0 \
+--planets "1.0,365,0.0,90;0.003,10,0.1,60" \
+--date_list "['2025-02-06T00:00:00','2025-02-07T12:00:00','2025-02-09T06:30:00']"
+```
+
+4. Random Observation Dates
+This simulates 200 observations at random times for a star with no planets.
+
+```
+python simulate_planetary_system.py \
+--star_mass 1.0 \
+--planets "" \
+--num_obs 200 \
+--random_dates
+```
+
+This is what we are currently running for the baseline check.
+
