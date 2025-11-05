@@ -65,3 +65,4 @@ python simulate_planetary_system.py \
 
 This is what we are currently running for the baseline check.
 
+## Documentation for `generator_simulation.py`
