@@ -66,3 +66,11 @@ python simulate_planetary_system.py \
 This is what we are currently running for the baseline check.
 
 ## Documentation for `generator_simulation.py`
+
+This script creates synthetic spectra! Download and keep this file in the same folder where you want to create the synthetic spectra! By simply pasting the outputs from the last command, you can generate any given number of synthetic observations (given that you have a high-resolution spectrum of a star and iodine spectra in hand).
+
+
+
+
+
+
