@@ -1,7 +1,7 @@
 This folder contains two Python files that can be downloaded and easily executed to simulate 'Default' instrument spectra with a given radial velocity for viper to decode. One needs the following packages as prerequisites:
 
 ```
-!pip install numpy scipy pandas astropy
+!pip install numpy scipy pandas astropy jplephem
 ```
 Of course, we assume that you will also have literally any high-resolution spectra handy.
 
