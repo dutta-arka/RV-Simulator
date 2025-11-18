@@ -74,26 +74,27 @@ Three Operation Modes:
 
 1. DEFAULT MODE (default):
    Uses synthetic CSV spectrum + hardcoded instrument settings
-   ```python3 generator_simulation.py -file spectrum.csv -num_obs 3 -vel_list "[100,200,300]"```
+   ```python3 generator_simulation.py -file spectrum.csv -num_obs 3 -vel_list "[100,200,300]" -output_dir temp1```
 
 2. AUTO MODE: 
-   Auto-infers everything from provided FITS files
-   ```python3 generator_simulation.py -mode auto -observed_spectrum obs.fits -fts_file custom.fits -num_obs 3 -vel_list "[100,200,300]"```
+   Auto-infers everything from the provided FITS files
+   ```python3 generator_simulation.py -mode auto -observed_spectrum obs.fits -fts_file custom.fits -num_obs 3 -vel_list "[100,200,300]" -output_dir temp1```
    
 3. MANUAL MODE:
    Uses observed spectrum + user-provided order ranges in text format
-   ```python3 generator_simulation.py -mode manual -observed_spectrum obs.fits -orders_file my_orders.txt -fts_file custom.fits -num_obs 3 -vel_list "[100,200,300]"```
+   ```python3 generator_simulation.py -mode manual -observed_spectrum obs.fits -orders_file my_orders.txt -fts_file custom.fits -num_obs 3 -vel_list "[100,200,300]" -output_dir temp1```
 
 Arguments:
 ----------
 * `-mode`                Look at the 'Operation Modes'
-* `-observed_spectrum`   provide one sample to make it run (riskier)
-* `-orders_file`         Or provide a listed txt file of exact order used in your instrument
+* `-observed_spectrum`   provides one sample to make it run (riskier)
+* `-orders_file`         Or provide a listed txt file of the exact order used in your instrument
 * `-num_obs`             Number of observations to generate.
 * `-vel_list`            RV shifts (m/s) for each observation as a list.
 * `-date_list`           non-equal spacing of dates.
 * `-time_step`           Spacing between observations, e.g. '3d0h' for 3 days and 0 hours.
 * `-file`                Path to the synthetic spectrum CSV file.
+* `-output_dir`          Directory to save output files (default: current directory).
 * `-ip_width`            IP width in pixels (Gaussian sigma).
 * `-ip_type`             Type of instrumental profile to convolve with: 'gaussian', 'bigaussian', or 'voigt'.
 * `-asymmetry`           Asymmetry factor (-1 to 1) for bi-Gaussian IP.
