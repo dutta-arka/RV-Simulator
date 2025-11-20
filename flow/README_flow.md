@@ -30,7 +30,7 @@ Command-Line Arguments:
 * `--random_dates`: A flag to generate random observation times. Just add `--random_dates` to the command. It sets a baseline of roughly `7*num_obs`.
 * `--use_gr`: A flag to apply the general relativity correction. Add `--use_gr` to enable it.
 
-Usage Examples
+Usage Examples:
 You can run the script from your terminal. Here are examples for the different timing modes:
 
 1. Uniform Observation Spacing
@@ -109,7 +109,7 @@ Command-Line Arguments:
 * `-observed_spectrum`   provides one sample observation to match the exact wavelength splitting and echelle orders (riskier). Usage: `-observed_spectrum \path\to\observation1`.
 * `-orders_file`         This argument allows you to provide a text file containing the exact order boundaries used in your instrument. Each line in the file must list the wavelength limits of one order.
 * `-num_obs`             Number of observations to generate. You can simply add `-num_obs 200` to get 200 synthetic files.
-* `-vel_list`            RV shifts (m/s) for each observation as a list. You need to carefully match the list with the number of observations asked to create. If not specified, it will assume evenly spread increasing velocity in the range of -1000 to 1000 m/s.
+* `-vel_list`            RV shifts (m/s) for each observation as a list. You need to carefully match the list with the number of observations asked to create. If not specified, it will assume evenly spread increasing velocity in the range of -1000 to 1000 m/s. You can also change this if you want to, by setting `-vel_list "[-100, 100]"`.
 * `-date_list`           You can use this feature in case you want to have a specific spacing of dates. Be careful to match the length with 'num_obs' if used.
 * `-time_step`           Spacing between observations, e.g. '3d0h' for 3 days and 0 hours.
 * `-file`                Path to the synthetic spectrum CSV file. Input should be like `-file \path\to\your\spectraum.csv`.
@@ -119,5 +119,44 @@ Command-Line Arguments:
 * `-asymmetry`           Asymmetry factor (-1 to 1) for bi-Gaussian IP. You need to set a specific number for this in the range when using 'bigaussian', or it will assume the value to be zero.
 * `-gamma`               Lorentzian width (gamma) for Voigt profile convolution. You need to select an appropriate value for this while using 'voigt'; otherwise, it will go to zero.
 * `-template`            This optional flag enables the creation of a template FITS file. As mentioned previously, the template contains only the stellar spectrum and excludes all gas-cell (iodine) lines.
-* `-site`                This optional flag provides the observatory name, as recognized by Astropy (for example, 'Keck'). The site information is used to compute barycentric corrections accurately.
+* `-site`                This optional flag provides the observatory name, as recognised by Astropy (for example, 'Keck'). The site information is used to compute barycentric corrections accurately.
 * `-add_noise`           Adds noise. The level of noise cannot be changed for now!
+
+Usage Examples:
+You can run the script from your terminal.
+
+```
+python3 generator_simulation.py \
+    -mode manual \
+    -observed_spectrum /path/to/example_observation.fits \
+    -orders_file /path/to/orders.txt \
+    -num_obs 5 \
+    -vel_list "[10,20,30,40,50]" \
+    -date_list "['2025-01-01T00:00:00','2025-01-02T00:00:00','2025-01-03T00:00:00','2025-01-04T00:00:00','2025-01-05T00:00:00']" \
+    -file /path/to/synthetic_spectrum.csv \
+    -output_dir /path/to/output_directory \
+    -ip_width [2.0,3.0] \
+    -ip_type bigaussian \
+    -asymmetry 0.2 \
+    -template \
+    -site Keck \
+    -add_noise
+```
+
+```
+python3 generator_simulation.py \
+    -mode auto \
+    -observed_spectrum /path/to/example_observation.fits \
+    -num_obs 10 \
+    -vel_list "[0,50]" \
+    -time_step "3d0h" \
+    -file /path/to/synthetic_spectrum.csv \
+    -output_dir /path/to/output_directory \
+    -ip_width 2.5 \
+    -ip_type voigt \
+    -asymmetry 0.0 \
+    -gamma 0.8 \
+    -template \
+    -site Keck \
+    -add_noise
+```
