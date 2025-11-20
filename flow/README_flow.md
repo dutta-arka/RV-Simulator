@@ -1,4 +1,4 @@
-This folder contains two Python files that can be downloaded and easily executed to simulate 'Default' instrument spectra with a given radial velocity for viper to decode. One needs the following packages as prerequisites:
+This folder contains two Python files that can be downloaded and easily executed to simulate 'Default' instrument spectra with a given radial velocity for viper to decode. Please *only* download these two files from this folder only. The coherence of the main branch is still a bit less. One needs the following packages as prerequisites:
 
 ```
 !pip install numpy scipy pandas astropy jplephem
@@ -69,11 +69,16 @@ This is what we are currently running for the baseline check.
 
 This script creates synthetic spectra! Download and keep this file in the same folder where you want to create the synthetic spectra! By simply pasting the outputs from the last command, you can generate any given number of synthetic observations (given that you have a high-resolution spectrum of a star and iodine spectra in hand).
 
+Even without using the previous script, for simple test cases, this file can be used directly. Details about the usage of this code are listed below.
+
+Key Features:
+
+
 Three Operation Modes:
 ---------------------
 
 1. DEFAULT MODE (default):
-   Uses synthetic CSV spectrum + hardcoded instrument settings
+   Uses a synthetic CSV spectrum + hardcoded instrument settings
    ```python3 generator_simulation.py -file spectrum.csv -num_obs 3 -vel_list "[100,200,300]" -output_dir temp1```
 
 2. AUTO MODE: 
