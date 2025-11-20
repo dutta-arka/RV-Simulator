@@ -12,6 +12,7 @@ Once this step is done, we can first dive into the helper sort of code, simulate
 This script is a command-line tool for simulating the radial velocity (RV) signature of a star due to its orbiting planets. Its main purpose is to calculate the RVs for a given set of observation times and then output a formatted command that can be directly used to run `generator_simulation.py`.
 
 Key Features:
+----------
 * It allows you to specify the star's mass and the properties of each planet (mass, period, eccentricity, and inclination) directly from the command line.
 * You can define your observation schedule in three ways:
   - Set a fixed number of observations with a constant time step between them.
@@ -20,6 +21,7 @@ Key Features:
 *  Includes an option to apply a general relativistic correction. 
 
 Command-Line Arguments:
+----------
 * `--star_mass`: [Required] The mass of the star in solar masses.
 * `--planets`: [Required] A string describing the planets. For multiple planets, separate them with a semicolon (;). Each planet is defined by mass (in Earth mass), period (in days), eccentricity, and inclination (in degrees). Use an empty string "" if there are no planets.
 * `--num_obs`: The number of observations you want to simulate. It's required if you're not providing a specific list of dates.
@@ -72,7 +74,12 @@ This script creates synthetic spectra! Download and keep this file in the same f
 Even without using the previous script, for simple test cases, this file can be used directly. Details about the usage of this code are listed below.
 
 Key Features:
-
+----------
+* The simulator injects user-specified radial-velocity shifts.
+* It can optionally add synthetic stellar activity noise.
+* The code computes accurate barycentric velocity corrections through Astropy’s coordinate and ephemeris utilities.
+* It can generate a stellar template spectrum without iodine contamination when the -template flag is used.
+* It constructs a full-spectrum, uniform log-lambda grid and extracts individual echelle orders using VIPER-style trimming, ensuring compatibility with pipeline expectations.
 
 Three Operation Modes:
 ---------------------
@@ -89,21 +96,28 @@ Three Operation Modes:
    Uses observed spectrum + user-provided order ranges in text format
    ```python3 generator_simulation.py -mode manual -observed_spectrum obs.fits -orders_file my_orders.txt -fts_file custom.fits -num_obs 3 -vel_list "[100,200,300]" -output_dir temp1```
 
-Arguments:
+Here, `my_orders.txt` file should have the following format:
+```
+(5000.0, 5100.0)
+(5100.0, 5200.0)
+...
+```
+
+Command-Line Arguments:
 ----------
-* `-mode`                Look at the 'Operation Modes'
-* `-observed_spectrum`   provides one sample to make it run (riskier)
-* `-orders_file`         Or provide a listed txt file of the exact order used in your instrument
-* `-num_obs`             Number of observations to generate.
-* `-vel_list`            RV shifts (m/s) for each observation as a list.
-* `-date_list`           non-equal spacing of dates.
+* `-mode`                Look at the “Operation Modes” section for a full explanation of the three available modes (default, auto, and manual). This flag determines how the simulator interprets wavelength ranges, FTS information, and instrument settings.
+* `-observed_spectrum`   provides one sample observation to match the exact wavelength splitting and echelle orders (riskier). Usage: `-observed_spectrum \path\to\observation1`.
+* `-orders_file`         This argument allows you to provide a text file containing the exact order boundaries used in your instrument. Each line in the file must list the wavelength limits of one order.
+* `-num_obs`             Number of observations to generate. You can simply add `-num_obs 200` to get 200 synthetic files.
+* `-vel_list`            RV shifts (m/s) for each observation as a list. You need to carefully match the list with the number of observations asked to create. If not specified, it will assume evenly spread increasing velocity in the range of -1000 to 1000 m/s.
+* `-date_list`           You can use this feature in case you want to have a specific spacing of dates. Be careful to match the length with 'num_obs' if used.
 * `-time_step`           Spacing between observations, e.g. '3d0h' for 3 days and 0 hours.
-* `-file`                Path to the synthetic spectrum CSV file.
-* `-output_dir`          Directory to save output files (default: current directory).
-* `-ip_width`            IP width in pixels (Gaussian sigma).
+* `-file`                Path to the synthetic spectrum CSV file. Input should be like `-file \path\to\your\spectraum.csv`.
+* `-output_dir`          Directory to save output files (default: current directory). One can change this by entering `-output_dir \path\to\new\directory1`.
+* `-ip_width`            IP width in pixels (Gaussian sigma). You can choose a single IP for all synthetic observation by setting `-ip_width anyvalue` or set a range of IP values randomly varying: `-ip_width [minmumvalue, maximumvalue]`.
 * `-ip_type`             Type of instrumental profile to convolve with: 'gaussian', 'bigaussian', or 'voigt'.
-* `-asymmetry`           Asymmetry factor (-1 to 1) for bi-Gaussian IP.
-* `-gamma`               Lorentzian width (gamma) for Voigt profile convolution.
-* `-template`            Optional flag to create a template FITS file.
-* `-site`                Optional flag: Observatory name recognised by astropy (e.g. 'Keck').
-* `-add_noise`           Adds noise
+* `-asymmetry`           Asymmetry factor (-1 to 1) for bi-Gaussian IP. You need to set a specific number for this in the range when using 'bigaussian', or it will assume the value to be zero.
+* `-gamma`               Lorentzian width (gamma) for Voigt profile convolution. You need to select an appropriate value for this while using 'voigt'; otherwise, it will go to zero.
+* `-template`            This optional flag enables the creation of a template FITS file. As mentioned previously, the template contains only the stellar spectrum and excludes all gas-cell (iodine) lines.
+* `-site`                This optional flag provides the observatory name, as recognized by Astropy (for example, 'Keck'). The site information is used to compute barycentric corrections accurately.
+* `-add_noise`           Adds noise. The level of noise cannot be changed for now!
