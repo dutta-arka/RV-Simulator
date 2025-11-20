@@ -127,26 +127,6 @@ You can run the script from your terminal.
 
 ```
 python3 generator_simulation.py \
-    -mode manual \
-    -observed_spectrum /path/to/example_observation.fits \
-    -orders_file /path/to/orders.txt \
-    -num_obs 5 \
-    -vel_list "[10,20,30,40,50]" \
-    -date_list "['2025-01-01T00:00:00','2025-01-02T00:00:00','2025-01-03T00:00:00','2025-01-04T00:00:00','2025-01-05T00:00:00']" \
-    -file /path/to/synthetic_spectrum.csv \
-    -output_dir /path/to/output_directory \
-    -ip_width [2.0,3.0] \
-    -ip_type bigaussian \
-    -asymmetry 0.2 \
-    -template \
-    -site Keck \
-    -add_noise
-```
-
-```
-python3 generator_simulation.py \
-    -mode auto \
-    -observed_spectrum /path/to/example_observation.fits \
     -num_obs 10 \
     -vel_list "[0,50]" \
     -time_step "3d0h" \
@@ -154,9 +134,8 @@ python3 generator_simulation.py \
     -output_dir /path/to/output_directory \
     -ip_width 2.5 \
     -ip_type voigt \
-    -asymmetry 0.0 \
     -gamma 0.8 \
     -template \
-    -site Keck \
+    -site TLS \
     -add_noise
 ```
