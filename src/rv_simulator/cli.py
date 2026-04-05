@@ -273,7 +273,7 @@ def run_simulation(args):
             print(f"Final shift applied: {total_shift:.2f} m/s")
             
             # Create interpolator for shifted stellar spectrum
-            star_interp = interp1d(shifted_star_wave, star_flux, kind='linear', bounds_error=False, fill_value=1.0)
+            star_interp = interp1d(shifted_star_wave, star_flux, kind='linear', bounds_error=False, fill_value='extrapolate')
             
             wave_orders_final = []
             flux_orders_final = []
@@ -328,7 +328,7 @@ def run_simulation(args):
         wave_tpl_corrected = apply_rv_shift(star_wave, -barycorr_ms_tpl)
         
         # Create interpolator for the bary-corrected star
-        star_interp_tpl = interp1d(wave_tpl_corrected, star_flux, kind='linear', bounds_error=False, fill_value=1.0)
+        star_interp_tpl = interp1d(wave_tpl_corrected, star_flux, kind='cubic', bounds_error=False, fill_value='extrapolate')
         
         w_orders_tpl = []
         f_orders_tpl = []
